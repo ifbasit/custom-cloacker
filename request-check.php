@@ -12,7 +12,10 @@ $settings = array(
     'target_country'    => 'GB',
     'mode'              => 'prod', // dev|prod
     'the_money_page'    => 'index.php',
-    'is_money_page_wp'  => true
+    'is_money_page_wp'  => true,
+    'source_camp_id'    => '21516269021',
+    'campaign_filter'   => true,
+    'gclid'             => true, // validate gclid?
 );
 
 // ==========================
@@ -22,6 +25,8 @@ $settings = array(
 $cloacker = array(
     'money_page'    => false,
     'country_check' => true,
+    'ip_address_check' => true,
+    'check_gclid' => get_custom_settings('gclid'),
     'log_error' => array(
         'error' => array()
     ),
@@ -42,7 +47,7 @@ $cloacker = array(
         'fingerprint'   => 'mbwEohL5ir6sSlrrQbni1'
     )
 );
-
+// ==========================
 
 
 set_cloacker('ip_address', get_client_ip());
@@ -56,153 +61,56 @@ set_cloacker('domain', $_SERVER['HTTP_HOST']);
 
 // ==========================
 
-function get_client_ip() {
-    if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
-        return $_SERVER['HTTP_CF_CONNECTING_IP'];
+if (get_custom_settings('campaign_filter')) {
+    $source_id = get_custom_settings('source_camp_id');
+
+    $campaignIdValid = isset($_GET['CampaignId']) && $_GET['CampaignId'] === $source_id;
+    $campaignidValid = isset($_GET['campaignid']) && $_GET['campaignid'] === $source_id;
+
+    if (!$campaignIdValid && !$campaignidValid) {
+        array_push($cloacker['log_visit']['meta'], [
+            'mode'        => get_custom_settings('mode'),
+            'reason'      => 'invalid_campaign_id',
+            'status'      => 'blocked',
+            'datetime'    => date('c'),
+            'ip'          => get_cloacker('ip_address'),
+            'geo'         => get_cloacker('country'),
+            'language'    => get_cloacker('user_language'),
+            'query_params'=> get_cloacker('query_params'),
+            'referrer'    => get_cloacker('referrer'),
+            'uniqid'      => _uniqid()
+        ]);
+
+        set_settings('use_ipqs', false);
+        set_settings('use_fingerprint', false);
+        set_cloacker('money_page', false);
+        set_cloacker('country_check', false);
+        set_cloacker('ip_address_check', false);
+        set_cloacker('check_gclid', false);
     }
+}
 
-    if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        $ip_list = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-        return trim($ip_list[0]);
+if (get_custom_settings('gclid') && get_cloacker('check_gclid')) {
+    if (!isset($_GET['gclid'])) {
+        array_push($cloacker['log_visit']['meta'], [
+            'mode'         => get_custom_settings('mode'),
+            'reason'       => 'missing_gclid',
+            'status'       => 'blocked',
+            'datetime'     => date('c'),
+            'ip'           => get_cloacker('ip_address'),
+            'geo'          => get_cloacker('country'),
+            'language'     => get_cloacker('user_language'),
+            'query_params' => get_cloacker('query_params'),
+            'referrer'     => get_cloacker('referrer'),
+            'uniqid'       => _uniqid()
+        ]);
+
+        set_settings('use_ipqs', false);
+        set_settings('use_fingerprint', false);
+        set_cloacker('money_page', false);
+        set_cloacker('country_check', false);
+        set_cloacker('ip_address_check', false);
     }
-
-    return $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
-}
-
-
-function show_loading_gif() {
-    echo '
-    <div id="loader-wrapper">
-      <div id="the-gif" style="
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: white;
-        z-index: 9999;
-      ">
-        <img src="/loading_2.gif" style="height: 70px;" />
-      </div>
-    </div>
-    <script>
-      document.body.style.overflow = "hidden";
-      setTimeout(() => {
-        const wrapper = document.getElementById("loader-wrapper");
-        if (wrapper) wrapper.remove();
-        document.body.style.overflow = "";
-      }, 4000);
-    </script>';
-}
-
-function get_user_language(){
-    if (empty($_SERVER['HTTP_ACCEPT_LANGUAGE'])) return 'unknown';
-    
-    $langs = explode(',', $_SERVER['HTTP_ACCEPT_LANGUAGE']);
-    if (count($langs) === 0) return 'unknown';
-    
-    $primary = explode(';', $langs[0])[0];
-    $primary = trim($primary);
-    
-    if (preg_match('/^[a-z]{1,8}(-[a-z]{1,8})?$/i', $primary)) return strtolower($primary);
-    return 'unknown';
-}
-
-function get_user_country($ip_address){
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, "https://ipinfo.io/{$ip_address}?token={$cloacker['credentials']['ipinfo']}");
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-
-    $response = curl_exec($ch);
-    curl_close($ch);
-    $data = json_decode($response, true);
-    return $data['country'];
-}
-
-function get_referrer(){
-   return isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
-}
-
-function render_wp_page($path = '/', $exit = false, $log = false) {
-    global $cloacker;
-    define('WP_USE_THEMES', true);
-    $_SERVER['REQUEST_URI'] = $path;
-    require __DIR__ . '/wp-blog-header.php';
-    if($log){
-        array_push($cloacker['log_visit'], $log);
-    }
-    if($exit) exit;
-}
-
-function render_money_page($exit = false){
-    require __DIR__ . '/'.get_custom_settings('the_money_page');
-    if($exit) exit;
-}
-
-function _uniqid($length = 6) {
-    $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    $charactersLength = strlen($characters);
-    $uniqueId = '';
-    for ($i = 0; $i < $length; $i++) {
-        $uniqueId .= $characters[random_int(0, $charactersLength - 1)];
-    }
-    return $uniqueId;
-}
-
-
-
-function set_cloacker($key, $value){
-    global $cloacker;
-    $cloacker[$key] = $value;
-}
-
-function set_settings($key, $value){
-    global $settings;
-    $settings[$key] = $value;
-}
-
-function get_cloacker($key){
-    global $cloacker;
-    return $cloacker[$key];
-}
-
-function get_custom_settings($key){
-    global $settings;
-    return $settings[$key];
-}
-
-function log_visit($data) {
-    $log_dir = __DIR__ . '/logs';
-    if (!file_exists($log_dir)) mkdir($log_dir, 0777, true);
-    file_put_contents("$log_dir/visit.log", json_encode($data) . PHP_EOL, FILE_APPEND);
-}
-
-function log_error($data) {
-    $log_dir = __DIR__ . '/logs';
-    if (!file_exists($log_dir)) mkdir($log_dir, 0777, true);
-    file_put_contents("$log_dir/error.log", json_encode($data) . PHP_EOL, FILE_APPEND);
-}
-
-function is_ip_blocked($ip) {
-    $log_file = __DIR__ . '/logs/visit.log';
-    if (!file_exists($log_file)) return false;
-
-    $lines = file($log_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        $entry = json_decode($line, true);
-        if (json_last_error() === JSON_ERROR_NONE) {
-            if (!empty($entry['meta'][0]['ip']) && trim($entry['meta'][0]['ip']) == trim($ip)) {
-                if ($entry['meta'][0]['reason'] !== 'OK') {
-                    return $entry;
-                }
-            }
-        }
-    }
-    return false;
 }
 
 
@@ -210,7 +118,9 @@ function is_ip_blocked($ip) {
 if(get_custom_settings('mode') == 'dev'){
     set_settings('use_ipqs', false);
     set_settings('use_fingerprint', false);
+    set_cloacker('ip_address_check', false);
     set_cloacker('money_page', true);
+    set_cloacker('country_check', false);
     array_push($cloacker['log_visit']['meta'], ['mode' => 'dev']);
 }
 
@@ -218,30 +128,31 @@ if(get_custom_settings('switch') == 'OFF'){
     set_settings('use_ipqs', false);
     set_settings('use_fingerprint', false);
     set_cloacker('money_page', false);
+    set_cloacker('ip_address_check', false);
     render_wp_page($_POST['path'] ?? '/', true, false);
 }
 
-if( is_ip_blocked(get_cloacker('ip_address')) ) {
 
-    array_push($cloacker['log_visit']['meta'], [
-                    'mode'   => get_custom_settings('mode'),
-                    'reason' => 'exists',
-                    'status' => 'blocked',
-                    'datetime' => date('c'),
-                    'ip' => get_cloacker('ip_address'),
-                    'geo' => get_cloacker('country'),
-                    'language' => get_cloacker('user_language'),
-                    'query_params' => get_cloacker('query_params'),
-                    'referrer' => get_cloacker('referrer'),
-                    'uniqid' => _uniqid()
-                ]);
-    set_settings('use_ipqs', false);
-    set_settings('use_fingerprint', false);
-    set_cloacker('money_page', false);
-    set_cloacker('country_check', false);
+if(get_cloacker('ip_address_check')){
+    if( is_ip_blocked(get_cloacker('ip_address')) ) {
+        array_push($cloacker['log_visit']['meta'], [
+                        'mode'   => get_custom_settings('mode'),
+                        'reason' => 'exists',
+                        'status' => 'blocked',
+                        'datetime' => date('c'),
+                        'ip' => get_cloacker('ip_address'),
+                        'geo' => get_cloacker('country'),
+                        'language' => get_cloacker('user_language'),
+                        'query_params' => get_cloacker('query_params'),
+                        'referrer' => get_cloacker('referrer'),
+                        'uniqid' => _uniqid()
+                    ]);
+        set_settings('use_ipqs', false);
+        set_settings('use_fingerprint', false);
+        set_cloacker('money_page', false);
+        set_cloacker('country_check', false);
+    }
 }
-
-
 
 if(get_cloacker('country_check')){
     if(get_cloacker('country') !== get_custom_settings('target_country')){
@@ -594,6 +505,155 @@ if(get_cloacker('money_page') && !get_custom_settings('use_fingerprint')){
 if(!get_cloacker('money_page') && !get_custom_settings('use_fingerprint')){
     log_visit($cloacker['log_visit']);
     render_wp_page($_POST['path'] ?? '/', false, false);
+}
+
+function get_client_ip() {
+    if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+        return $_SERVER['HTTP_CF_CONNECTING_IP'];
+    }
+
+    if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $ip_list = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+        return trim($ip_list[0]);
+    }
+
+    return $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+}
+
+
+function show_loading_gif() {
+    echo '
+    <div id="loader-wrapper">
+      <div id="the-gif" style="
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: white;
+        z-index: 9999;
+      ">
+        <img src="/loading_2.gif" style="height: 70px;" />
+      </div>
+    </div>
+    <script>
+      document.body.style.overflow = "hidden";
+      setTimeout(() => {
+        const wrapper = document.getElementById("loader-wrapper");
+        if (wrapper) wrapper.remove();
+        document.body.style.overflow = "";
+      }, 4000);
+    </script>';
+}
+
+function get_user_language(){
+    if (empty($_SERVER['HTTP_ACCEPT_LANGUAGE'])) return 'unknown';
+    
+    $langs = explode(',', $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+    if (count($langs) === 0) return 'unknown';
+    
+    $primary = explode(';', $langs[0])[0];
+    $primary = trim($primary);
+    
+    if (preg_match('/^[a-z]{1,8}(-[a-z]{1,8})?$/i', $primary)) return strtolower($primary);
+    return 'unknown';
+}
+
+function get_user_country($ip_address){
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, "https://ipinfo.io/{$ip_address}?token={$cloacker['credentials']['ipinfo']}");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+
+    $response = curl_exec($ch);
+    curl_close($ch);
+    $data = json_decode($response, true);
+    return $data['country'];
+}
+
+function get_referrer(){
+   return isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
+}
+
+function render_wp_page($path = '/', $exit = false, $log = false) {
+    global $cloacker;
+    define('WP_USE_THEMES', true);
+    $_SERVER['REQUEST_URI'] = $path;
+    require __DIR__ . '/wp-blog-header.php';
+    if($log){
+        array_push($cloacker['log_visit'], $log);
+    }
+    if($exit) exit;
+}
+
+function render_money_page($exit = false){
+    require __DIR__ . '/'.get_custom_settings('the_money_page');
+    if($exit) exit;
+}
+
+function _uniqid($length = 6) {
+    $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $charactersLength = strlen($characters);
+    $uniqueId = '';
+    for ($i = 0; $i < $length; $i++) {
+        $uniqueId .= $characters[random_int(0, $charactersLength - 1)];
+    }
+    return $uniqueId;
+}
+
+
+
+function set_cloacker($key, $value){
+    global $cloacker;
+    $cloacker[$key] = $value;
+}
+
+function set_settings($key, $value){
+    global $settings;
+    $settings[$key] = $value;
+}
+
+function get_cloacker($key){
+    global $cloacker;
+    return $cloacker[$key];
+}
+
+function get_custom_settings($key){
+    global $settings;
+    return $settings[$key];
+}
+
+function log_visit($data) {
+    $log_dir = __DIR__ . '/logs';
+    if (!file_exists($log_dir)) mkdir($log_dir, 0777, true);
+    file_put_contents("$log_dir/visit.log", json_encode($data) . PHP_EOL, FILE_APPEND);
+}
+
+function log_error($data) {
+    $log_dir = __DIR__ . '/logs';
+    if (!file_exists($log_dir)) mkdir($log_dir, 0777, true);
+    file_put_contents("$log_dir/error.log", json_encode($data) . PHP_EOL, FILE_APPEND);
+}
+
+function is_ip_blocked($ip) {
+    $log_file = __DIR__ . '/logs/visit.log';
+    if (!file_exists($log_file)) return false;
+
+    $lines = file($log_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $entry = json_decode($line, true);
+        if (json_last_error() === JSON_ERROR_NONE) {
+            if (!empty($entry['meta'][0]['ip']) && trim($entry['meta'][0]['ip']) == trim($ip)) {
+                if ($entry['meta'][0]['reason'] !== 'OK') {
+                    return $entry;
+                }
+            }
+        }
+    }
+    return false;
 }
 
 ?>
