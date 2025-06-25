@@ -1,7 +1,7 @@
 <?php
 /*
 * Title: A Custom Cloacker Which Use Fingerprint and IPQualityScore APIs (NON WORDPRESS)
-* Author: Abdul Basit
+* Author: Abdul Basit (ifbasit@gmail.com)
 */
 // ==== BASIC SETTINGS ====
 
@@ -69,19 +69,7 @@ if (get_custom_settings('campaign_filter')) {
     $campaignidValid = isset($_GET['campaignid']) && $_GET['campaignid'] === $source_id;
 
     if (!$campaignIdValid && !$campaignidValid) {
-        array_push($cloacker['log_visit']['meta'], [
-            'mode'        => get_custom_settings('mode'),
-            'reason'      => 'invalid_campaign_id',
-            'status'      => 'blocked',
-            'datetime'    => date('c'),
-            'ip'          => get_cloacker('ip_address'),
-            'geo'         => get_cloacker('country'),
-            'language'    => get_cloacker('user_language'),
-            'query_params'=> get_cloacker('query_params'),
-            'referrer'    => get_cloacker('referrer'),
-            'uniqid'      => _uniqid()
-        ]);
-
+        set_meta('invalid_campaign_id', 'blocked');
         set_settings('use_ipqs', false);
         set_settings('use_fingerprint', false);
         set_cloacker('money_page', false);
@@ -93,19 +81,7 @@ if (get_custom_settings('campaign_filter')) {
 
 if (get_custom_settings('gclid') && get_cloacker('check_gclid')) {
     if (!isset($_GET['gclid'])) {
-        array_push($cloacker['log_visit']['meta'], [
-            'mode'         => get_custom_settings('mode'),
-            'reason'       => 'missing_gclid',
-            'status'       => 'blocked',
-            'datetime'     => date('c'),
-            'ip'           => get_cloacker('ip_address'),
-            'geo'          => get_cloacker('country'),
-            'language'     => get_cloacker('user_language'),
-            'query_params' => get_cloacker('query_params'),
-            'referrer'     => get_cloacker('referrer'),
-            'uniqid'       => _uniqid()
-        ]);
-
+        set_meta('missing_gclid', 'blocked');
         set_settings('use_ipqs', false);
         set_settings('use_fingerprint', false);
         set_cloacker('money_page', false);
@@ -136,18 +112,7 @@ if(get_custom_settings('switch') == 'OFF'){
 
 if(get_cloacker('ip_address_check')){
     if( is_ip_blocked(get_cloacker('ip_address')) ) {
-        array_push($cloacker['log_visit']['meta'], [
-                        'mode'   => get_custom_settings('mode'),
-                        'reason' => 'exists',
-                        'status' => 'blocked',
-                        'datetime' => date('c'),
-                        'ip' => get_cloacker('ip_address'),
-                        'geo' => get_cloacker('country'),
-                        'language' => get_cloacker('user_language'),
-                        'query_params' => get_cloacker('query_params'),
-                        'referrer' => get_cloacker('referrer'),
-                        'uniqid' => _uniqid()
-                    ]);
+        set_meta('exists', 'blocked');
         set_settings('use_ipqs', false);
         set_settings('use_fingerprint', false);
         set_cloacker('money_page', false);
@@ -161,18 +126,7 @@ if(get_cloacker('country_check')){
         set_settings('use_fingerprint', false);
         set_cloacker('money_page', false);
 
-        array_push($cloacker['log_visit']['meta'], [
-                        'mode'   => get_custom_settings('mode'),
-                        'reason' => 'invalid_country',
-                        'status' => 'blocked',
-                        'datetime' => date('c'),
-                        'ip' => get_cloacker('ip_address'),
-                        'geo' => get_cloacker('country'),
-                        'language' => get_cloacker('user_language'),
-                        'query_params' => get_cloacker('query_params'),
-                        'referrer' => get_cloacker('referrer'),
-                        'uniqid' => _uniqid()
-                    ]);
+        set_meta('invalid_country', 'blocked');
         set_settings('use_ipqs', false);
         set_settings('use_fingerprint', false);
         set_cloacker('money_page', false);
@@ -239,20 +193,7 @@ if (get_custom_settings('use_ipqs')) {
                 $reason = 'is_crawler';                
             }
 
-            array_push($cloacker['log_visit']['meta'], [
-                    'mode'   => get_custom_settings('mode'),
-                    'reason' => $reason,
-                    'status' => 'blocked',
-                    'datetime' => date('c'),
-                    'ip' => get_cloacker('ip_address'),
-                    'geo' => get_cloacker('country'),
-                    'language' => get_cloacker('user_language'),
-                    'query_params' => get_cloacker('query_params'),
-                    'referrer' => get_cloacker('referrer'),
-                    'uniqid' => _uniqid()
-                ]);
-
-
+            set_meta($reason, 'blocked');
             $cloacker['log_visit']['ipqs'] =  [
                     'fraud_score' => $result['fraud_score'] ?? null,
                     'proxy' => $result['proxy'] ?? null,
@@ -337,18 +278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && get_custom_settings('use_fingerprin
     $path = $_POST['path'] ?? '/';
 
     if (!$request_id || !$visitor_id) {
-        array_push($cloacker['log_visit']['meta'], [
-            'mode'   => get_custom_settings('mode'),
-            'reason' => 'fingerprint_visitor_request_id_none',
-            'status' => 'blocked',
-            'datetime' => date('c'),
-            'ip' => get_cloacker('ip_address'),
-            'geo' => get_cloacker('country'),
-            'language' => get_cloacker('user_language'),
-            'query_params' => get_cloacker('query_params'),
-            'referrer' => get_cloacker('referrer'),
-            'uniqid' => _uniqid()
-        ]);
+        set_meta('fingerprint_visitor_request_id_none', 'blocked');
         set_settings('use_ipqs', false);
         set_settings('use_fingerprint', false);
         set_cloacker('money_page', false);
@@ -400,21 +330,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && get_custom_settings('use_fingerprin
             } else if($devtools_result === true){
                 $reason = 'devtools_result';
             }
-
-            array_push($cloacker['log_visit']['meta'], [
-                    'mode'   => get_custom_settings('mode'),
-                    'reason' => $reason,
-                    'status' => 'blocked',
-                    'datetime' => date('c'),
-                    'ip' => get_cloacker('ip_address'),
-                    'geo' => get_cloacker('country'),
-                    'language' => get_cloacker('user_language'),
-                    'query_params' => get_cloacker('query_params'),
-                    'referrer' => get_cloacker('referrer'),
-                    'uniqid' => _uniqid()
-                ]);
-
-
+            set_meta($reason, 'blocked');
             $cloacker['log_visit']['fingerprint'] =  [
                     'ip' => $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['REMOTE_ADDR'],
                     'timestamp' => date('c'),
@@ -451,18 +367,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && get_custom_settings('use_fingerprin
     }
 
     if(get_cloacker('money_page')){
-         array_push($cloacker['log_visit']['meta'], [
-                        'mode'   => get_custom_settings('mode'),
-                        'reason' => 'OK',
-                        'status' => 'success',
-                        'datetime' => date('c'),
-                        'ip' => get_cloacker('ip_address'),
-                        'geo' => get_cloacker('country'),
-                        'language' => get_cloacker('user_language'),
-                        'query_params' => get_cloacker('query_params'),
-                        'referrer' => get_cloacker('referrer'),
-                        'uniqid' => _uniqid()
-                    ]);
+        set_meta('OK', 'success');
         log_visit($cloacker['log_visit']);
         render_money_page();
         
@@ -476,18 +381,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && get_custom_settings('use_fingerprin
 
 
 if(get_cloacker('money_page') && !get_custom_settings('use_fingerprint')){
-     array_push($cloacker['log_visit']['meta'], [
-                    'mode'   => get_custom_settings('mode'),
-                    'reason' => 'OK',
-                    'status' => 'success',
-                    'datetime' => date('c'),
-                    'ip' => get_cloacker('ip_address'),
-                    'geo' => get_cloacker('country'),
-                    'language' => get_cloacker('user_language'),
-                    'query_params' => get_cloacker('query_params'),
-                    'referrer' => get_cloacker('referrer'),
-                    'uniqid' => _uniqid()
-                ]);
+    set_meta('OK', 'success');
     log_visit($cloacker['log_visit']);
     render_money_page();
     
@@ -622,6 +516,23 @@ function log_visit($data) {
     file_put_contents("$log_dir/visit.log", json_encode($data) . PHP_EOL, FILE_APPEND);
 }
 
+function set_meta($reason, $status){
+    global $cloacker;
+    array_push($cloacker['log_visit']['meta'], [
+                    'mode'   => get_custom_settings('mode'),
+                    'reason' => $reason,
+                    'status' => $status,
+                    'datetime' => date('c'),
+                    'ip' => get_cloacker('ip_address'),
+                    'geo' => get_cloacker('country'),
+                    'language' => get_cloacker('user_language'),
+                    'query_params' => get_cloacker('query_params'),
+                    'referrer' => get_cloacker('referrer'),
+                    'uniqid' => _uniqid()
+                ]);
+}
+
+
 function log_error($data) {
     $log_dir = __DIR__ . '/logs';
     if (!file_exists($log_dir)) mkdir($log_dir, 0777, true);
@@ -645,5 +556,4 @@ function is_ip_blocked($ip) {
     }
     return false;
 }
-
 ?>
