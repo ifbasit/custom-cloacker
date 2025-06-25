@@ -564,6 +564,7 @@ function get_user_language(){
 }
 
 function get_user_country($ip_address){
+    global $cloacker;
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, "https://ipinfo.io/{$ip_address}?token={$cloacker['credentials']['ipinfo']}");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
