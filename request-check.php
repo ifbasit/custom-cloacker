@@ -1,6 +1,6 @@
 <?php
 /*
-* Title: A Custom Cloacker Which Use Fingerprint and IPQualityScore APIs
+* Title: A Custom Cloacker Which Use Fingerprint and IPQualityScore APIs (WORDPRESS)
 * Author: Abdul Basit
 */
 // ==== BASIC SETTINGS ====
