@@ -265,7 +265,7 @@ if (get_custom_settings('use_ipqs')) {
                     'message' => $result['message'] ?? null
                 ];
 
-            if(!get_custom_settings('use_fp_always)){
+            if(!get_custom_settings('use_fp_always')){
                 set_settings('use_fingerprint', false);
             }
             set_cloacker('money_page', false);
