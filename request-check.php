@@ -16,6 +16,7 @@ $settings = array(
     'source_camp_id'    => '21516269021',
     'campaign_filter'   => true,
     'gclid'             => true, // validate gclid?
+    'use_fp_always'     => true, // if set to true; fingerprint will be checked regardless if ipsq is blocking or not
 );
 
 // ==========================
@@ -263,8 +264,10 @@ if (get_custom_settings('use_ipqs')) {
                     'country_code' => $result['country_code'] ?? null,
                     'message' => $result['message'] ?? null
                 ];
-
-            set_settings('use_fingerprint', false);
+            if(!get_custom_settings('use_fp_always)){
+                set_settings('use_fingerprint', false);
+            }
+            
             set_cloacker('money_page', false);
 
         } else {
