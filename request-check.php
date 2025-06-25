@@ -264,7 +264,7 @@ if (get_custom_settings('use_ipqs')) {
                     'country_code' => $result['country_code'] ?? null,
                     'message' => $result['message'] ?? null
                 ];
-            if(!get_custom_settings('use_fp_always)){
+            if(!get_custom_settings('use_fp_always')){
                 set_settings('use_fingerprint', false);
             }
             
