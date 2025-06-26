@@ -330,7 +330,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && get_custom_settings('use_fingerprin
             } else if($devtools_result === true){
                 $reason = 'devtools_result';
             }
-            set_meta($reason, 'blocked');
             $cloacker['log_visit']['fingerprint'] =  [
                     'ip' => $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['REMOTE_ADDR'],
                     'timestamp' => date('c'),
@@ -344,7 +343,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && get_custom_settings('use_fingerprin
                     'anomaly_score' => $anomaly_score,
                     'anti_detect_browser' => $anti_detect_browser
                 ];
-            set_cloacker('money_page', false);
+            if(!get_custom_settings('use_fp_always')){
+                set_meta($reason, 'blocked');
+                set_cloacker('money_page', false);
+            }
            
 
         } else {
@@ -361,7 +363,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && get_custom_settings('use_fingerprin
                 'anomaly_score' => $anomaly_score,
                 'anti_detect_browser' => $anti_detect_browser
             ];
-            set_cloacker('money_page', true);
+            if(!get_custom_settings('use_fp_always')){
+                set_cloacker('money_page', true);
+            }
             
         }
     }
