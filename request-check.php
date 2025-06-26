@@ -11,11 +11,11 @@ $settings = array(
     'use_fingerprint'   => true,
     'target_country'    => 'GB',
     'mode'              => 'prod', // dev|prod
-    'the_money_page'    => 'index.php',
-    'is_money_page_wp'  => true,
+    'the_money_page'    => 'a6fb5a94-6876-4fb2-8d03-91f085d9f5a8.php',
+    'is_money_page_wp'  => false,
     'source_camp_id'    => '21516269021',
-    'campaign_filter'   => true,
-    'gclid'             => true, // validate gclid?
+    'campaign_filter'   => false,
+    'gclid'             => False, // validate gclid?
     'use_fp_always'     => true, // if set to true; fingerprint will be checked regardless if ipsq is blocking or not
 );
 
@@ -331,7 +331,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && get_custom_settings('use_fingerprin
             } else if($devtools_result === true){
                 $reason = 'devtools_result';
             }
-            set_meta($reason, 'blocked');
+            
             $cloacker['log_visit']['fingerprint'] =  [
                     'ip' => $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['REMOTE_ADDR'],
                     'timestamp' => date('c'),
@@ -345,7 +345,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && get_custom_settings('use_fingerprin
                     'anomaly_score' => $anomaly_score,
                     'anti_detect_browser' => $anti_detect_browser
                 ];
-            set_cloacker('money_page', false);
+
+            if(!get_custom_settings('use_fp_always')){
+                set_meta($reason, 'blocked');
+                set_cloacker('money_page', false);
+            }    
+            
            
 
         } else {
@@ -362,7 +367,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && get_custom_settings('use_fingerprin
                 'anomaly_score' => $anomaly_score,
                 'anti_detect_browser' => $anti_detect_browser
             ];
-            set_cloacker('money_page', true);
+            if(!get_custom_settings('use_fp_always')){
+                set_cloacker('money_page', true);
+            }
+            
             
         }
     }
