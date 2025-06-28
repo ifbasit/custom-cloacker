@@ -511,8 +511,6 @@ function _uniqid($length = 6) {
     return $uniqueId;
 }
 
-
-
 function set_cloacker($key, $value){
     global $cloacker;
     $cloacker[$key] = $value;
@@ -550,33 +548,54 @@ function set_meta($reason, $status){
 }
 
 function log_visit($data) {
-    $log_dir = __DIR__ . '/logs';
-    if (!file_exists($log_dir)) mkdir($log_dir, 0777, true);
-    file_put_contents("$log_dir/visit.log", json_encode($data) . PHP_EOL, FILE_APPEND);
+    log_json('visit.log', $data);
 }
 
 function log_error($data) {
+    log_json('error.log', $data);
+}
+
+function log_json($filename, $data) {
     $log_dir = __DIR__ . '/logs';
-    if (!file_exists($log_dir)) mkdir($log_dir, 0777, true);
-    file_put_contents("$log_dir/error.log", json_encode($data) . PHP_EOL, FILE_APPEND);
+    if (!file_exists($log_dir)) {
+        mkdir($log_dir, 0777, true);
+    }
+
+    $filepath = "$log_dir/$filename";
+    $entries = [];
+
+    if (file_exists($filepath)) {
+        $json = file_get_contents($filepath);
+        $decoded = json_decode($json, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            $entries = $decoded;
+        }
+    }
+
+    $entries[] = $data;
+    file_put_contents($filepath, json_encode($entries, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 }
 
 function is_ip_blocked($ip) {
     $log_file = __DIR__ . '/logs/visit.log';
-    if (!file_exists($log_file)) return false;
+    if (!file_exists($log_file)) {
+        return false;
+    }
 
-    $lines = file($log_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        $entry = json_decode($line, true);
-        if (json_last_error() === JSON_ERROR_NONE) {
-            if (!empty($entry['meta'][0]['ip']) && trim($entry['meta'][0]['ip']) == trim($ip)) {
-                if ($entry['meta'][0]['reason'] !== 'OK') {
-                    return $entry;
-                }
+    $json = file_get_contents($log_file);
+    $entries = json_decode($json, true);
+    if (json_last_error() !== JSON_ERROR_NONE || !is_array($entries)) {
+        return false;
+    }
+
+    foreach ($entries as $entry) {
+        if (!empty($entry['meta'][0]['ip']) && trim($entry['meta'][0]['ip']) == trim($ip)) {
+            if ($entry['meta'][0]['reason'] !== 'OK') {
+                return $entry;
             }
         }
     }
+
     return false;
 }
-
 ?>
