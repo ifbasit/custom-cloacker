@@ -15,7 +15,7 @@ $settings = array(
     'is_money_page_wp'  => false,
     'source_camp_id'    => '21516269021',
     'campaign_filter'   => false,
-    'gclid'             => False, // validate gclid?
+    'gclid'             => false, // validate gclid?
     'use_fp_always'     => true, // if set to true; fingerprint will be checked regardless if ipsq is blocking or not
 );
 
