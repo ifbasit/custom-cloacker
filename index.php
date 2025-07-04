@@ -9,7 +9,7 @@ $settings = array(
     'switch'            => 'ON', // ON|OFF
     'use_ipqs'          => true,
     'use_fingerprint'   => true,
-    'target_country'    => 'GB',
+    'target_country'    => 'PK',
     'mode'              => 'prod', // dev|prod
     'the_money_page'    => 'money-page.php',
     'the_safe_page'     => 'safe-page.php',
@@ -133,6 +133,8 @@ if(get_cloacker('country_check')){
 
 
 
+$ipqs_block_reason = '';
+$fp_block_reason = '';
 // ==== IPQUALITYSCORE SECTION ====
 if (get_cloacker('use_services')) {
     $key = get_cloacker('credentials')['ipqs'];
@@ -172,24 +174,20 @@ if (get_cloacker('use_services')) {
             $result['is_crawler'] !== false 
         ) {
 
-            $reason = '';
             if($result['fraud_score'] > 50){
-                $reason = 'fraud_score';               
+                $ipqs_block_reason = 'fraud_score';               
             } else if($result['proxy']){
-                $reason = 'proxy';
+                $ipqs_block_reason = 'proxy';
             } else if($result['vpn']) {
-                $reason = 'vpn';
+                $ipqs_block_reason = 'vpn';
             } else if($result['tor']){
-                $reason = 'tor';
+                $ipqs_block_reason = 'tor';
             } else if($result['bot_status']){
-                $reason = 'bot_status';
+                $ipqs_block_reason = 'bot_status';
             } else if($result['is_crawler']){
-                $reason = 'is_crawler';                
+                $ipqs_block_reason = 'is_crawler';                
             }
 
-            if(empty($cloacker['log_visit']['meta']) && get_custom_settings('use_ipqs') ){
-                set_meta($reason, 'blocked');
-            }
             $cloacker['log_visit']['ipqs'] =  [
                     'fraud_score' => $result['fraud_score'] ?? null,
                     'proxy' => $result['proxy'] ?? null,
@@ -217,9 +215,6 @@ if (get_cloacker('use_services')) {
                     'message' => $result['message'] ?? null
                 ];
             set_cloacker('valid_ipqs', true);
-            if(empty($cloacker['log_visit']['meta']) && get_custom_settings('use_ipqs') ){
-                set_meta('OK', 'Success');
-            }
 
         }
     } else {
@@ -318,11 +313,10 @@ if (get_cloacker('use_services')) {
                 $devtools_result === true
             ) {
 
-                $reason = '';
                 if($suspect_score > 3){
-                    $reason = 'suspect_score';
+                    $fp_block_reason = 'suspect_score';
                 } else if($devtools_result === true){
-                    $reason = 'devtools_result';
+                    $fp_block_reason = 'devtools_result';
                 }
                 $cloacker['log_visit']['fingerprint'] =  [
                         'ip' => $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['REMOTE_ADDR'],
@@ -338,11 +332,6 @@ if (get_cloacker('use_services')) {
                         'anti_detect_browser' => $anti_detect_browser
                     ];
                 set_cloacker('valid_fp', false);
-                if(empty($cloacker['log_visit']['meta']) && get_custom_settings('use_fingerprint')){
-                    set_meta($reason, 'blocked');
-                }
-            
-
             } else {
             $cloacker['log_visit']['fingerprint'] =  [
                     'ip' => $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['REMOTE_ADDR'],
@@ -357,21 +346,29 @@ if (get_cloacker('use_services')) {
                     'anomaly_score' => $anomaly_score,
                     'anti_detect_browser' => $anti_detect_browser
                 ];
-                if(empty($cloacker['log_visit']['meta']) && get_custom_settings('use_fingerprint') ){
-                    set_meta('OK', 'Success');
-                }
                 set_cloacker('valid_fp', true);
                 
             }
         }
-
-        log_visit($cloacker['log_visit']);
 
         $use_fingerprint = get_custom_settings('use_fingerprint');
         $use_ipqs = get_custom_settings('use_ipqs');
 
         $valid_fp = get_cloacker('valid_fp');
         $valid_ipqs = get_cloacker('valid_ipqs');
+
+        if ($use_fingerprint && !$valid_fp) {
+            $reason = !empty($fp_block_reason) ? $fp_block_reason : 'Fingerprint validation failed';
+            set_meta($reason, 'blocked');
+        } elseif ($use_ipqs && !$valid_ipqs) {
+            $reason = !empty($ipqs_block_reason) ? $ipqs_block_reason : 'IPQS validation failed';
+            set_meta($reason, 'blocked');
+        } else {
+            set_meta('OK', 'Success');
+        }
+        
+        log_visit($cloacker['log_visit']);
+
 
         if ($use_fingerprint && $use_ipqs) {
             if (!$valid_fp || !$valid_ipqs) {
