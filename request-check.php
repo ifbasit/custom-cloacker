@@ -75,7 +75,9 @@ if(get_custom_settings('mode') == 'dev'){
     set_cloacker('use_services', false);
     set_cloacker('ip_address_check', false);
     set_cloacker('country_check', false);
-    array_push($cloacker['log_visit']['meta'], ['mode' => 'dev']);
+    set_meta('OK', 'dev');
+    log_visit($cloacker['log_visit']);
+    render_money_page(true);
 }
 
 if(get_cloacker('ip_address_check')){
