@@ -233,6 +233,7 @@ if (get_cloacker('use_services')) {
  ?><script>
 const currentPath = window.location.pathname;
 const domain = "<?php echo get_cloacker('domain'); ?>";
+const referrer = "<?php echo get_cloacker('referrer'); ?>";
 
 import(`https://metrics.${domain}/web/v3/hqfUFhcCESRwuA2uuzQR`)
   .then(FingerprintJS => FingerprintJS.load({
@@ -248,6 +249,7 @@ import(`https://metrics.${domain}/web/v3/hqfUFhcCESRwuA2uuzQR`)
     formData.append('request_id', result.requestId);
     formData.append('visitor_id', result.visitorId);
     formData.append('path', currentPath);
+    formData.append('referrer', referrer);
 
     fetch(window.location.href, {
       method: 'POST',
@@ -266,13 +268,14 @@ import(`https://metrics.${domain}/web/v3/hqfUFhcCESRwuA2uuzQR`)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $request_id = $_POST['request_id'] ?? null;
     $visitor_id = $_POST['visitor_id'] ?? null;
+    $referrer = $_POST['referrer'] ?? null;
     $path = $_POST['path'] ?? '/';
 
     if (!$request_id || !$visitor_id) {
         set_meta('fingerprint_visitor_request_id_none', 'blocked');
         set_cloacker('valid_fp', false);
     }
-
+    set_cloacker('referrer', $referrer);
     $url = "https://eu.api.fpjs.io/events/{$request_id}";
     $ch = curl_init();
     curl_setopt_array($ch, [
