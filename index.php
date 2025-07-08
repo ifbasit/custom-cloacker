@@ -9,10 +9,10 @@ $settings = array(
     'switch'            => 'ON', // ON|OFF
     'use_ipqs'          => true,
     'use_fingerprint'   => true,
-    'target_country'    => 'PK',
+    'target_country'    => 'IL',
     'mode'              => 'prod', // dev|prod
-    'the_money_page'    => 'money-page.php',
-    'the_safe_page'     => 'safe-page.php',
+    'the_money_page'    => '44eab465-6b60-4660-a89c-71e05ba0e80e.php',
+    'the_safe_page'     => 'index.php',
     'source_camp_id'    => '21516269021',
     'campaign_filter'   => false,
     'gclid'             => false, // validate gclid?
@@ -31,7 +31,7 @@ $cloacker = array(
     'ip_address_check' => true,
     'check_gclid' => get_custom_settings('gclid'),
     'log_error' => array(
-        'error' => array()
+        'meta' => array()
     ),
     'log_visit' => array(
         'meta' => array(),
@@ -181,7 +181,7 @@ if (get_cloacker('use_services')) {
             } else if ($result['is_crawler']) {
                 $ipqs_block_reason = 'is_crawler';
             }
-        }
+        
 
             $cloacker['log_visit']['ipqs'] =  [
                     'fraud_score' => $result['fraud_score'] ?? null,
@@ -318,7 +318,7 @@ if (get_cloacker('use_services')) {
                     } else if ($devtools_result === true) {
                         $fp_block_reason = 'dev_tools';
                     }
-                }
+                
                 $cloacker['log_visit']['fingerprint'] =  [
                         'ip' => $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['REMOTE_ADDR'],
                         'timestamp' => date('c'),
@@ -397,6 +397,7 @@ if (get_cloacker('use_services')) {
         }
     }
 }
+
  else {
     log_visit($cloacker['log_visit']);
     render_safe_page(false, false);
