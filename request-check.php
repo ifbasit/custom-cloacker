@@ -60,6 +60,9 @@ set_cloacker('query_params', http_build_query($_GET) );
 set_cloacker('referrer', get_referrer() );
 set_cloacker('domain', $_SERVER['HTTP_HOST']);
 
+if (isset($_GET['ipfp_check']) && $_GET['ipfp_check'] === 'true2206') {
+    set_custom_settings('mode', 'dev');
+}
 
 
 // ==========================
