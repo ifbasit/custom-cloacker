@@ -31,7 +31,7 @@ $cloacker = array(
     'ip_address_check' => true,
     'check_gclid' => get_custom_settings('gclid'),
     'log_error' => array(
-        'error' => array()
+        'meta' => array()
     ),
     'log_visit' => array(
         'meta' => array(),
@@ -137,8 +137,6 @@ if (get_custom_settings('gclid') && get_cloacker('check_gclid')) {
     }
 }
 
-
-
 // ==== IPQUALITYSCORE SECTION ====
 if (get_cloacker('use_services')) {
     $key = get_cloacker('credentials')['ipqs'];
@@ -183,7 +181,7 @@ if (get_cloacker('use_services')) {
             } else if ($result['is_crawler']) {
                 $ipqs_block_reason = 'is_crawler';
             }
-        }
+
             $cloacker['log_visit']['ipqs'] =  [
                     'fraud_score' => $result['fraud_score'] ?? null,
                     'proxy' => $result['proxy'] ?? null,
@@ -316,9 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $fp_block_reason = 'bot_detected';
                     } else if ($devtools_result === true) {
                         $fp_block_reason = 'dev_tools';
-                    }
-                }
-                
+                    }                
                 $cloacker['log_visit']['fingerprint'] =  [
                         'ip' => $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['REMOTE_ADDR'],
                         'timestamp' => date('c'),
@@ -394,6 +390,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             render_wp_page($_POST['path'] ?? '/', true, false);
         }
     }
+    
 } else {
     log_visit($cloacker['log_visit']);
     render_wp_page($_POST['path'] ?? '/', true, false);
