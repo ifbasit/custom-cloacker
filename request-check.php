@@ -166,29 +166,21 @@ if (get_cloacker('use_services')) {
     $result = json_decode($json, true);
 
     if (isset($result['success']) && $result['success'] === true) {
-        if (
-            $result['fraud_score'] > 50 ||
-            $result['proxy'] !== false ||
-            $result['vpn'] !== false ||
-            $result['tor'] !== false  ||
-            $result['bot_status'] !== false ||
-            $result['is_crawler'] !== false 
+         if (
+            $result['proxy'] === true &&
+            ($result['bot_status'] === true || $result['is_crawler'] === true) &&
+            $result['fraud_score'] >= 90
         ) {
-
-            $reason = '';
-            if($result['fraud_score'] > 50){
-                $reason = 'fraud_score';               
-            } else if($result['proxy']){
-                $reason = 'proxy';
-            } else if($result['vpn']) {
-                $reason = 'vpn';
-            } else if($result['tor']){
-                $reason = 'tor';
-            } else if($result['bot_status']){
-                $reason = 'bot_status';
-            } else if($result['is_crawler']){
-                $reason = 'is_crawler';                
+            if ($result['fraud_score'] >= 90) {
+                $ipqs_block_reason = 'fraud_score';
+            } else if ($result['proxy']) {
+                $ipqs_block_reason = 'proxy';
+            } else if ($result['bot_status']) {
+                $ipqs_block_reason = 'bot_status';
+            } else if ($result['is_crawler']) {
+                $ipqs_block_reason = 'is_crawler';
             }
+        }
             $cloacker['log_visit']['ipqs'] =  [
                     'fraud_score' => $result['fraud_score'] ?? null,
                     'proxy' => $result['proxy'] ?? null,
@@ -311,16 +303,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $anti_detect_browser = $data['products']['tampering']['data']['antiDetectBrowser'] ?? false;
 
             if (
-                in_array($bot_result, ['goodBot', 'badBot']) ||
-                $suspect_score > 3 ||
-                $devtools_result === true
-            ) {
-
-                $reason = '';
-                if($suspect_score > 3){
-                    $reason = 'suspect_score';
-                } else if($devtools_result === true){
-                    $reason = 'devtools_result';
+                    $suspect_score > 7 ||
+                    $bot_result !== 'notDetected' ||
+                    $devtools_result === true
+                ) {
+                    if ($suspect_score > 7) {
+                        $fp_block_reason = 'suspect_score';
+                    } else if ($bot_result !== 'notDetected') {
+                        $fp_block_reason = 'bot_detected';
+                    } else if ($devtools_result === true) {
+                        $fp_block_reason = 'dev_tools';
+                    }
                 }
                 
                 $cloacker['log_visit']['fingerprint'] =  [
