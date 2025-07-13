@@ -46,9 +46,9 @@ $cloacker = array(
     'country'       => '',
     'referrer'      => '',
     'credentials'   => array(
-        'ipinfo'        => 'bc8e414a4c2162a',
-        'ipqs'          => 'hu8RQvvWL9JEqruGoyKr57slx8gD05p7b',
-        'fingerprint'   => 'mbwEohL5ir6sSlrrQbni1'
+        'ipinfo'        => 'c8e414a4c2162a',
+        'ipqs'          => 'u8RQvvWL9JEqruGoyKr57slx8gD05p7b',
+        'fingerprint'   => 'bwEohL5ir6sSlrrQbni1'
     )
 );
 // ==========================
@@ -261,10 +261,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $ipqs_fraud_score = $ipqs_data['fraud_score'];
                 $ipqs_bot_status = $ipqs_data['bot_status'];
                 $ipqs_crawler = $ipqs_data['is_crawler'];
+                $ipqs_browser = $ipqs_data['ipqs_browser'];
+                $ipqs_country_code = $ipqs_data['ipqs_country_code'];
+                $ipqs_message = $ipqs_data['ipqs_message'];
+
 
                 $fp_bot_result = $fp_data['products']['botd']['data']['bot']['result'] ?? 'notDetected';
                 $fp_devtools = $fp_data['products']['developerTools']['data']['result'] ?? false;
                 $fp_suspect_score = $fp_data['products']['suspectScore']['data']['result'] ?? 0;
+                $fp_confidence_score = $fp_data['products']['identification']['data']['confidence']['score'] ?? false;
+                $fp_incognito = $fp_data['products']['identification']['data']['incognito']['score'] ?? false;
+                $fp_anomaly_score = $fp_data['products']['tampering']['data']['anomalyScore'] ?? false;
+                $fp_anti_detect_browser = $fp_data['products']['tampering']['data']['antiDetectBrowser'] ?? false;
 
 
                 $cloacker['log_visit']['ipqs'] =  [
@@ -274,12 +282,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'tor' => $ipqs_tor ?? null,
                     'bot_status' => $ipqs_bot_status ?? null,
                     'is_crawler' => $ipqs_crawler ?? null,
+                    'browser' => $ipqs_browser ?? null,
+                    'country_code' => $ipqs_country_code ?? null,
+                    'message' => $ipqs_message ?? null
                 ];
 
                 $cloacker['log_visit']['fingerprint'] =  [
+                        'ip' => $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['REMOTE_ADDR'],
+                        'timestamp' => date('c'),
+                        'source' => 'fpjs',
+                        'visitor_id' => $visitor_id,
                         'bot_result' => $fp_bot_result,
                         'suspect_score' => $fp_suspect_score,
                         'devtools' => $fp_devtools,
+                        'confidence_score' => $fp_confidence_score,
+                        'incognito' => $fp_incognito,
+                        'anomaly_score' => $fp_anomaly_score,
+                        'anti_detect_browser' => $fp_anti_detect_browser
                     ];
 
                 // Rule A: proxy/vpn/tor = true, fraud_score > 90, and bot/crawler = true
