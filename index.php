@@ -7,12 +7,10 @@
 
 $settings = array(
     'switch'            => 'ON', // ON|OFF
-    'use_ipqs'          => true,
-    'use_fingerprint'   => true,
-    'target_country'    => 'IL',
+    'target_country'    => 'PK',
     'mode'              => 'prod', // dev|prod
-    'the_money_page'    => '44eab465-6b60-4660-a89c-71e05ba0e80e.php',
-    'the_safe_page'     => 'index.php',
+    'the_money_page'    => '89479830-0dd0-43e4-aced-448ee425516f.php',
+    'the_safe_page'     => 'white-index.php',
     'source_camp_id'    => '21516269021',
     'campaign_filter'   => false,
     'gclid'             => false, // validate gclid?
@@ -24,8 +22,14 @@ $settings = array(
 // ==== CLOAKER VARIABLES (DO NOT UPDATE) ====
 
 $cloacker = array(
-    'valid_ipqs'    => false,
-    'valid_fp'      => false,
+    'fp'  => array(
+        'valid'     => false,
+        'response'  => array()
+    ),
+    'ipqs'  => array(
+        'valid'     => false,
+        'response'  => array()
+    ),
     'use_services'  => true,
     'country_check' => true,
     'ip_address_check' => true,
@@ -66,34 +70,40 @@ if (isset($_GET['ipfp_check']) && $_GET['ipfp_check'] === 'true2206') {
 // ==========================
 
 if(get_custom_settings('switch') == 'OFF'){
-    set_cloacker('use_services', false);
     set_cloacker('ip_address_check', false);
-    render_safe_page(true, false);
+    set_meta('OK', 'OFF');
+    log_visit($cloacker['log_visit']);
+    render_safe_page();
+    exit;
 }
 
 if(get_custom_settings('mode') == 'dev'){
-    set_cloacker('use_services', false);
     set_cloacker('ip_address_check', false);
     set_cloacker('country_check', false);
     set_meta('OK', 'dev');
     log_visit($cloacker['log_visit']);
-    render_money_page(true);
+    render_money_page();
+    exit;
 }
 
 if(get_cloacker('ip_address_check')){
     if( is_ip_blocked(get_cloacker('ip_address')) ) {
         set_meta('blocked_exists', 'blocked');
-        set_cloacker('use_services', false);
         set_cloacker('country_check', false);
         set_custom_settings('one_visit_per_ip', false);
+        log_visit($cloacker['log_visit']);
+        render_safe_page();
+        exit;
     }
 }
 
 if(get_custom_settings('one_visit_per_ip')){
     if( is_ip_exists(get_cloacker('ip_address')) ) {
         set_meta('ip_exists', 'blocked');
-        set_cloacker('use_services', false);
         set_cloacker('country_check', false);
+        log_visit($cloacker['log_visit']);
+        render_safe_page();
+        exit;
     }
 }
 
@@ -105,27 +115,33 @@ if (get_custom_settings('campaign_filter')) {
 
     if (!$campaignIdValid && !$campaignidValid) {
         set_meta('invalid_campaign_id', 'blocked');
-        set_cloacker('use_services', false);
         set_cloacker('country_check', false);
         set_cloacker('ip_address_check', false);
         set_cloacker('check_gclid', false);
+        log_visit($cloacker['log_visit']);
+        render_safe_page();
+        exit;
     }
 }
 
 if (get_custom_settings('gclid') && get_cloacker('check_gclid')) {
     if (!isset($_GET['gclid'])) {
         set_meta('missing_gclid', 'blocked');
-        set_cloacker('use_services', false);
         set_cloacker('country_check', false);
         set_cloacker('ip_address_check', false);
+        log_visit($cloacker['log_visit']);
+        render_safe_page();
+        exit;
     }
 }
 
 
 if(get_cloacker('country_check')){
     if(get_cloacker('country') !== get_custom_settings('target_country')){
-        set_cloacker('use_services', false);
         set_meta('invalid_country', 'blocked');
+        log_visit($cloacker['log_visit']);
+        render_safe_page();
+        exit;
     } 
 
     if(get_cloacker('country') == get_custom_settings('target_country')){
@@ -166,69 +182,15 @@ if (get_cloacker('use_services')) {
 
     $result = json_decode($json, true);
 
-    if (isset($result['success']) && $result['success'] === true) {
-        if (
-            $result['proxy'] === true &&
-            ($result['bot_status'] === true || $result['is_crawler'] === true) &&
-            $result['fraud_score'] >= 90
-        ) {
-            if ($result['fraud_score'] >= 90) {
-                $ipqs_block_reason = 'fraud_score';
-            } else if ($result['proxy']) {
-                $ipqs_block_reason = 'proxy';
-            } else if ($result['bot_status']) {
-                $ipqs_block_reason = 'bot_status';
-            } else if ($result['is_crawler']) {
-                $ipqs_block_reason = 'is_crawler';
-            }
-        
+    array_push($cloacker['ipqs']['response'], $result);
 
-            $cloacker['log_visit']['ipqs'] =  [
-                    'fraud_score' => $result['fraud_score'] ?? null,
-                    'proxy' => $result['proxy'] ?? null,
-                    'vpn' => $result['vpn'] ?? null,
-                    'tor' => $result['tor'] ?? null,
-                    'bot_status' => $result['bot_status'] ?? null,
-                    'is_crawler' => $result['is_crawler'] ?? null,
-                    'browser' => $result['browser'] ?? null,
-                    'country_code' => $result['country_code'] ?? null,
-                    'message' => $result['message'] ?? null
-                ];
-
-            set_cloacker('valid_ipqs', false);
-
-        } else {
-            $cloacker['log_visit']['ipqs'] =  [
-                    'fraud_score' => $result['fraud_score'] ?? null,
-                    'proxy' => $result['proxy'] ?? null,
-                    'vpn' => $result['vpn'] ?? null,
-                    'tor' => $result['tor'] ?? null,
-                    'bot_status' => $result['bot_status'] ?? null,
-                    'is_crawler' => $result['is_crawler'] ?? null,
-                    'browser' => $result['browser'] ?? null,
-                    'country_code' => $result['country_code'] ?? null,
-                    'message' => $result['message'] ?? null
-                ];
-            set_cloacker('valid_ipqs', true);
-
-        }
-    } else {
-        $cloacker['log_error']['meta'][] = [
-            'source' => 'ipqs',
-            'datetime' => date('c'),
-            'error' => $result ?: 'Empty or invalid response',
-            'query_params' => $query_params
-        ];
-        set_cloacker('valid_ipqs', false);
-        log_error($log_error);
-    }
 
     // ==== FINGERPRINTJS SECTION ====
 ?>
     <script>
-    const currentPath = window.location.pathname;
-    const domain = "<?php echo get_cloacker('domain'); ?>";
-    const referrer = "<?php echo get_cloacker('referrer'); ?>";
+    var the_path = window.location.pathname;
+    var domain = "<?php echo get_cloacker('domain'); ?>";
+    var referrer = "<?php echo get_cloacker('referrer'); ?>";
         
     import(`https://metrics.${domain}/web/v3/hqfUFhcCESRwuA2uuzQR`)
     .then(FingerprintJS => FingerprintJS.load({
@@ -243,7 +205,7 @@ if (get_cloacker('use_services')) {
         const formData = new FormData();
         formData.append('request_id', result.requestId);
         formData.append('visitor_id', result.visitorId);
-        formData.append('path', currentPath);
+        formData.append('path', the_path);
         formData.append('referrer', referrer);
 
         fetch(window.location.href, {
@@ -268,7 +230,13 @@ if (get_cloacker('use_services')) {
 
         if (!$request_id || !$visitor_id) {
             set_meta('fingerprint_visitor_request_id_none', 'blocked');
-            set_cloacker('valid_fp', false);
+            log_error($cloacker['log_error']);
+                if (ob_get_level()) {
+                                ob_end_clean();
+                            }
+
+                render_safe_page();
+                exit;
         }
         set_cloacker('referrer', $referrer);
         
@@ -286,121 +254,180 @@ if (get_cloacker('use_services')) {
         curl_close($ch);
 
         $data = json_decode($response, true);
+        array_push($cloacker['fp']['response'], $data);
 
-        if (isset($data['error'])) {
+        $ipqs_data = $cloacker['ipqs']['response'][0];
+        $fp_data = $cloacker['fp']['response'][0];
 
-            $cloacker['log_error']['meta'][] = [
-                'source' => 'fingerprint',
-                'datetime' => date('c'),
-                'error' => $data['error']['message'],
-                'query_params' => get_cloacker('query_params')
-            ];
-            set_cloacker('valid_fp', false);
-            log_error($log_error);
-        } else {
-            $bot_result = $data['products']['botd']['data']['bot']['result'] ?? 'notDetected';
-            $suspect_score = $data['products']['suspectScore']['data']['result'] ?? 0;
-            $devtools_result = $data['products']['developerTools']['data']['result'] ?? false;
-            $confidence_score = $data['products']['identification']['data']['confidence']['score'] ?? false;
-            $incognito = $data['products']['identification']['data']['incognito']['score'] ?? false;
-            $anomaly_score = $data['products']['tampering']['data']['anomalyScore'] ?? false;
-            $anti_detect_browser = $data['products']['tampering']['data']['antiDetectBrowser'] ?? false;
 
-            if (
-                    $suspect_score > 7 ||
-                    $bot_result !== 'notDetected' ||
-                    $devtools_result === true
-                ) {
-                    if ($suspect_score > 7) {
-                        $fp_block_reason = 'suspect_score';
-                    } else if ($bot_result !== 'notDetected') {
-                        $fp_block_reason = 'bot_detected';
-                    } else if ($devtools_result === true) {
-                        $fp_block_reason = 'dev_tools';
-                    }
-                
+        if (isset($ipqs_data['success']) && $ipqs_data['success'] === true) { // checks any error from ipqs
+            if (isset($fp_data['error'])) { // checks any error from fingeprint
+                $cloacker['log_error']['meta'][] = [
+                    'source' => 'fingerprint',
+                    'datetime' => date('c'),
+                    'error' => $data['error']['message'],
+                    'query_params' => get_cloacker('query_params')
+                ];
+                log_error($cloacker['log_error']);
+                if (ob_get_level()) {
+                                ob_end_clean();
+                            }
+
+                render_safe_page();
+                exit;
+            } else {
+                $ipqs_proxy = $ipqs_data['proxy'];
+                $ipqs_vpn = $ipqs_data['vpn'];
+                $ipqs_tor = $ipqs_data['tor'];
+                $ipqs_fraud_score = $ipqs_data['fraud_score'];
+                $ipqs_bot_status = $ipqs_data['bot_status'];
+                $ipqs_crawler = $ipqs_data['is_crawler'];
+                $ipqs_browser = $ipqs_data['ipqs_browser'];
+                $ipqs_country_code = $ipqs_data['ipqs_country_code'];
+                $ipqs_message = $ipqs_data['ipqs_message'];
+
+
+                $fp_bot_result = $fp_data['products']['botd']['data']['bot']['result'] ?? 'notDetected';
+                $fp_devtools = $fp_data['products']['developerTools']['data']['result'] ?? false;
+                $fp_suspect_score = $fp_data['products']['suspectScore']['data']['result'] ?? 0;
+                $fp_confidence_score = $fp_data['products']['identification']['data']['confidence']['score'] ?? false;
+                $fp_incognito = $fp_data['products']['identification']['data']['incognito']['score'] ?? false;
+                $fp_anomaly_score = $fp_data['products']['tampering']['data']['anomalyScore'] ?? false;
+                $fp_anti_detect_browser = $fp_data['products']['tampering']['data']['antiDetectBrowser'] ?? false;
+
+
+                $cloacker['log_visit']['ipqs'] =  [
+                    'fraud_score' => $ipqs_fraud_score,
+                    'proxy' => $ipqs_proxy ?? null,
+                    'vpn' => $ipqs_vpn ?? null,
+                    'tor' => $ipqs_tor ?? null,
+                    'bot_status' => $ipqs_bot_status ?? null,
+                    'is_crawler' => $ipqs_crawler ?? null,
+                    'browser' => $ipqs_browser ?? null,
+                    'country_code' => $ipqs_country_code ?? null,
+                    'message' => $ipqs_message ?? null
+                ];
+
                 $cloacker['log_visit']['fingerprint'] =  [
                         'ip' => $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['REMOTE_ADDR'],
                         'timestamp' => date('c'),
                         'source' => 'fpjs',
                         'visitor_id' => $visitor_id,
-                        'bot_result' => $bot_result,
-                        'suspect_score' => $suspect_score,
-                        'devtools' => $devtools_result,
-                        'confidence_score' => $confidence_score,
-                        'incognito' => $incognito,
-                        'anomaly_score' => $anomaly_score,
-                        'anti_detect_browser' => $anti_detect_browser
+                        'bot_result' => $fp_bot_result,
+                        'suspect_score' => $fp_suspect_score,
+                        'devtools' => $fp_devtools,
+                        'confidence_score' => $fp_confidence_score,
+                        'incognito' => $fp_incognito,
+                        'anomaly_score' => $fp_anomaly_score,
+                        'anti_detect_browser' => $fp_anti_detect_browser
                     ];
-                set_cloacker('valid_fp', false);
-            } else {
-            $cloacker['log_visit']['fingerprint'] =  [
-                    'ip' => $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['REMOTE_ADDR'],
-                    'timestamp' => date('c'),
-                    'source' => 'fpjs',
-                    'visitor_id' => $visitor_id,
-                    'bot_result' => $bot_result,
-                    'suspect_score' => $suspect_score,
-                    'devtools' => $devtools_result,
-                    'confidence_score' => $confidence_score,
-                    'incognito' => $incognito,
-                    'anomaly_score' => $anomaly_score,
-                    'anti_detect_browser' => $anti_detect_browser
-                ];
-                set_cloacker('valid_fp', true);
-                
+
+                // Rule A: proxy/vpn/tor = true, fraud_score > 90, and bot/crawler = true
+                $A = ($ipqs_proxy || $ipqs_vpn || $ipqs_tor) && $ipqs_fraud_score > 90 && ($ipqs_bot_status || $ipqs_crawler);
+
+                // Rule B: FingerprintJS suspect score > 7
+                $B = $fp_suspect_score > 7;
+
+                // Step 1: Bot or DevTools detected
+                if ($fp_bot_result !== "notDetected" || $fp_devtools === true) {
+                    set_meta('Bot or DevTools detected', 'blocked');
+                    log_visit($cloacker['log_visit']);
+                    if (ob_get_level()) {
+                                ob_end_clean();
+                            }
+
+                    render_safe_page();
+                    exit;
+                }
+
+                // Step 2: Evaluate based on A and B
+                if ($A || $B) {
+                    if ($A) {
+                        if ($fp_suspect_score <= 4) {
+                            set_meta('OK', 'Success');
+                            log_visit($cloacker['log_visit']);
+                            if (ob_get_level()) {
+                                ob_end_clean();
+                            }
+
+                            render_money_page();
+                            exit;
+                        } else {
+                            set_meta('FP Suspect Score', 'blocked');
+                            log_visit($cloacker['log_visit']);
+                            if (ob_get_level()) {
+                                ob_end_clean();
+                            }
+
+                            render_safe_page();
+                            exit;
+                        }
+                    }
+
+                    if ($B) {
+                        if (
+                            $fp_suspect_score <= 14 &&
+                            !$ipqs_proxy &&
+                            !$ipqs_vpn &&
+                            !$ipqs_tor &&
+                            !$ipqs_bot_status &&
+                            !$ipqs_crawler
+                        ) {
+                            set_meta('OK', 'Success');
+                            log_visit($cloacker['log_visit']);
+                            if (ob_get_level()) {
+                                ob_end_clean();
+                            }
+
+                            render_money_page();
+                            exit;
+                        } else {
+                            set_meta('FP Suspect Score, Proxy, VPN, TOR, Bot or Crawler', 'blocked');
+                            log_visit($cloacker['log_visit']);
+                            if (ob_get_level()) {
+                                ob_end_clean();
+                            }
+
+                            render_safe_page();
+                            exit;
+                        }
+                    }
+                } else {
+                    set_meta('OK', 'Success');
+                    log_visit($cloacker['log_visit']);
+                    if (ob_get_level()) {
+                        ob_end_clean();
+                    }
+                    render_money_page();
+                    exit;
+                }
+
             }
-        }
 
-        $use_fingerprint = get_custom_settings('use_fingerprint');
-        $use_ipqs = get_custom_settings('use_ipqs');
 
-        $valid_fp = get_cloacker('valid_fp');
-        $valid_ipqs = get_cloacker('valid_ipqs');
-
-        if ($use_fingerprint && !$valid_fp) {
-            $reason = !empty($fp_block_reason) ? $fp_block_reason : 'Fingerprint validation failed';
-            set_meta($reason, 'blocked');
-        } elseif ($use_ipqs && !$valid_ipqs) {
-            $reason = !empty($ipqs_block_reason) ? $ipqs_block_reason : 'IPQS validation failed';
-            set_meta($reason, 'blocked');
         } else {
-            set_meta('OK', 'Success');
+             $cloacker['log_error']['meta'][] = [
+                'source' => 'ipqs',
+                'datetime' => date('c'),
+                'error' => $ipqs_data ?: 'Empty or invalid response',
+                'query_params' => get_cloacker('query_params')
+            ];
+            log_error($cloacker['log_error']);
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+            render_safe_page();
+            exit;
         }
-        
-        log_visit($cloacker['log_visit']);
 
-
-        if ($use_fingerprint && $use_ipqs) {
-            if (!$valid_fp || !$valid_ipqs) {
-                render_safe_page(false, false);
-            } else {
-                render_money_page();
-            }
-
-        } elseif ($use_fingerprint && !$use_ipqs) {
-            if ($valid_fp) {
-                render_money_page();
-            } else {
-                render_safe_page(false, false);
-            }
-
-        } elseif ($use_ipqs && !$use_fingerprint) {
-            if ($valid_ipqs) {
-                render_money_page();
-            } else {
-                render_safe_page(false, false);
-            }
-
-        } else {
-            render_safe_page(false, false);
-        }
     }
-}
-
- else {
+} else {
     log_visit($cloacker['log_visit']);
-    render_safe_page(false, false);
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
+    render_safe_page();
+    exit;
 }
 
 
@@ -476,18 +503,12 @@ function get_referrer(){
    return isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
 }
 
-function render_safe_page($exit = false, $log = false) {
-    global $cloacker;
+function render_safe_page() {
     require __DIR__ . '/'.get_custom_settings('the_safe_page');
-    if($log){
-        array_push($cloacker['log_visit'], $log);
-    }
-    if($exit) exit;
 }
 
-function render_money_page($exit = false){
+function render_money_page(){
     require __DIR__ . '/'.get_custom_settings('the_money_page');
-    if($exit) exit;
 }
 
 function _uniqid($length = 6) {
